@@ -1,0 +1,62 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Modal from '../layouts/Modal.astro';
+---
+
+<Layout title="Welcome to Astro.">
+	<header class="bg-logo">
+		<picture>
+			<source srcset="/images/logo.webp" type="image/svg+xml">
+			<img src="/images/logo.jpeg" alt="Astro Logo" width="100" height="100">
+		</picture>
+		<div class="flex-1 h-full flex items-center">
+			<h1>Company</h1>
+		</div>
+		<button class="nav-toggle flex md:hidden before:flex before:hidden" aria-label="Mobile Menu">
+			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<line x1="3" y1="12" x2="21" y2="12"></line>
+				<line x1="3" y1="6" x2="21" y2="6"></line>
+				<line x1="3" y1="18" x2="21" y2="18"></line>
+			</svg>
+		</button>
+		<nav class="relative">
+			<ul  class="nav-menu my-2 flex hidden md:flex flex-col items-start md:flex-row md:justify-center md:gap-16">
+				<li class="w-1/3"><a href="/">Home</a></li>
+				<li class="flex flex-col items-center">
+					<button aria-label="Page-1.0" class="nav-button">Page-1.0</button>
+					<ul class="nav-dropdown block bg-green-700 w-full md:w-fit md:hidden">
+						<li><a href="/#Page-1.1">Page-1.1</a></li>
+						<li><a href="/#Page-1.2">Page-1.2</a></li>
+						<li><a href="/#Page-1.3">Page-1.3</a></li>
+					</ul>
+				</li>
+				<li class="flex flex-col items-center">
+					<button aria-label="Page-2.0" class="nav-button">Page-2.0</button>
+					<ul class="nav-dropdown block bg-green-700 w-full md:w-fit md:hidden">
+						<li><a href="/#Page-2.1">Page-2.1</a></li>
+						<li><a href="/#Page-2.2">Page-2.2</a></li>
+						<li><a href="/#Page-2.3">Page-2.3</a></li>
+					</ul>
+				</li>
+				<li><a href="/#Page-4.0">Page-4.0</a></li>
+				<li><button aria-label="Modal 1" class="modal-btn" data-target="modal-1">Modal-1.0</button></li>
+			</ul>
+		</nav>
+	</header>
+    <main class="bg-yellow-500 px-6">
+		<section class="bg-orange-500 w-full">
+			<h1>Header 1</h1>
+			<h2>Header 2</h2>
+			<h3>Header 3</h3>
+			<h4>Header 4</h4>
+			<h5>Header 5</h5>
+			<p>Paragraph</p>
+		</section>
+	</main>
+    <footer class="bg-purple-500">Footer Content</footer>
+	<Modal>
+		<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pellentesque, massa non pellentesque ultrices, lacus dolor egestas metus, quis faucibus metus augue id est. Cras convallis a tellus at sodales. In dignissim velit eget nisi mattis accumsan. In ultrices maximus finibus. Donec varius velit nec scelerisque dignissim. Praesent ornare varius pharetra. Integer sagittis sollicitudin aliquet.</p>
+		<p>Nulla lacus mauris, sagittis vel eleifend et, scelerisque egestas nunc. Maecenas in est elit. Nulla condimentum arcu ac libero pulvinar pellentesque. Mauris finibus dictum venenatis. Donec eu nisi felis. Integer porta dapibus arcu, vel dignissim urna fermentum sed. Vestibulum iaculis, ante id aliquet mattis, odio mauris lacinia ipsum, id gravida mi nulla sit amet lectus. Cras in metus placerat, semper arcu eget, commodo risus.</p>
+	</Modal>
+</Layout>
+
