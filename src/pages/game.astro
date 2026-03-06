@@ -1,0 +1,143 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Blindfold Guessing Game">
+  <!--
+    game.astro
+    Full-screen game UI for the Blindfold Guessing Game.
+    Three screens are toggled via JavaScript:
+      1. difficulty-screen  – pick difficulty + deck size
+      2. game-screen        – active gameplay (card display + voice/text input)
+      3. results-screen     – score summary table
+  -->
+
+  <main class="min-h-screen flex flex-col items-center justify-center p-4
+               bg-gray-50 dark:bg-gray-900 transition-colors">
+
+    <!-- ─────────────────────────────────────────────────────────────────────
+         SCREEN 1 · Difficulty Selector
+    ────────────────────────────────────────────────────────────────────────── -->
+    <section id="difficulty-screen"
+             class="flex flex-col items-center gap-6 w-full max-w-sm">
+
+      <h1 class="text-4xl font-extrabold text-center dark:text-white">
+        🎭 Blindfold Guessing Game
+      </h1>
+
+      <p class="text-gray-500 dark:text-gray-400 text-center text-sm">
+        You'll be "blindfolded" — guess each card by speaking aloud or typing.
+      </p>
+
+      <!-- Difficulty -->
+      <div class="w-full">
+        <label for="difficulty-select"
+               class="block text-sm font-semibold mb-1 dark:text-gray-200">
+          Difficulty
+        </label>
+        <select id="difficulty-select"
+                class="w-full rounded-lg border border-gray-300 dark:border-gray-600
+                       bg-white dark:bg-gray-800 dark:text-white
+                       px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <option value="1">1 – Solid colours</option>
+          <option value="2">2 – 2D shapes</option>
+          <option value="3">3 – 3D shapes</option>
+          <option value="4">4 – Mixed 2D &amp; 3D shapes</option>
+          <option value="5">5 – Coloured 2D shapes</option>
+          <option value="6" selected>6 – Coloured 3D shapes</option>
+        </select>
+      </div>
+
+      <!-- Deck size -->
+      <div class="w-full">
+        <label for="deck-size"
+               class="block text-sm font-semibold mb-1 dark:text-gray-200">
+          Number of cards
+        </label>
+        <input id="deck-size" type="number" min="1" max="20" value="5"
+               class="w-full rounded-lg border border-gray-300 dark:border-gray-600
+                      bg-white dark:bg-gray-800 dark:text-white
+                      px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+      </div>
+
+      <button id="start-btn"
+              class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800
+                     text-white font-bold py-3 rounded-xl text-lg transition-colors
+                     focus:outline-none focus:ring-4 focus:ring-indigo-300">
+        Start Game
+      </button>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────────────
+         SCREEN 2 · Active Gameplay
+    ────────────────────────────────────────────────────────────────────────── -->
+    <section id="game-screen" class="hidden flex flex-col items-center gap-6 w-full max-w-md">
+
+      <!-- Status / prompt text -->
+      <p id="status-text"
+         class="text-center text-sm font-medium text-indigo-600 dark:text-indigo-400 h-5">
+      </p>
+
+      <!-- Card container – GSAP operates on this element -->
+      <div id="card-container"
+           class="w-64 h-64 sm:w-72 sm:h-72
+                  rounded-2xl shadow-2xl
+                  flex items-center justify-center overflow-hidden
+                  bg-white dark:bg-gray-800
+                  perspective-[800px]">
+        <!-- Shape content is injected here dynamically -->
+      </div>
+
+      <!-- Manual guess fallback (always visible; disabled while engine is busy) -->
+      <div class="flex gap-2 w-full">
+        <input id="guess-input" type="text" placeholder="Type your guess…"
+               disabled
+               class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600
+                      bg-white dark:bg-gray-800 dark:text-white
+                      px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500
+                      disabled:opacity-40 disabled:cursor-not-allowed" />
+        <button id="guess-btn" disabled
+                class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold
+                       px-4 py-2 rounded-lg text-sm transition-colors
+                       disabled:opacity-40 disabled:cursor-not-allowed
+                       focus:outline-none focus:ring-2 focus:ring-indigo-300">
+          Submit
+        </button>
+      </div>
+
+      <!-- Voice availability notice – shown/hidden by JS -->
+      <p id="voice-notice"
+         class="text-xs text-gray-400 dark:text-gray-500 text-center">
+        🎤 Voice recognition active. Speak your guess — or type it above.
+      </p>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────────────
+         SCREEN 3 · Results
+    ────────────────────────────────────────────────────────────────────────── -->
+    <section id="results-screen"
+             class="hidden flex flex-col items-center gap-6 w-full max-w-2xl">
+
+      <h2 class="text-3xl font-extrabold dark:text-white">Results</h2>
+
+      <!-- Score + table injected by GameEngine.showResults() -->
+      <div id="results-container"
+           class="w-full overflow-x-auto rounded-xl shadow
+                  bg-white dark:bg-gray-800 p-4">
+      </div>
+
+      <button id="play-again-btn"
+              class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800
+                     text-white font-bold py-3 px-8 rounded-xl text-lg transition-colors
+                     focus:outline-none focus:ring-4 focus:ring-indigo-300">
+        Play Again
+      </button>
+    </section>
+
+  </main>
+
+  <!-- Mount the TypeScript entry point as an Astro client-side script -->
+  <script>
+    import '../main.ts';
+  </script>
+</Layout>
