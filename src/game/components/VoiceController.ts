@@ -74,11 +74,8 @@ export class VoiceController {
               const alt = result[a];
               let t = '';
               if (alt) {
-                const o = alt as { transcript?: string; [k: string]: unknown };
+                const o = alt as unknown as { transcript?: string };
                 if (typeof o.transcript === 'string') t = o.transcript.trim();
-                else if (typeof (alt as unknown as { transcript?: string }).transcript === 'string') {
-                  t = (alt as unknown as { transcript: string }).transcript.trim();
-                }
               }
               log(`    alternative[${a}] transcript=`, JSON.stringify(t));
               if (t) transcript = t;
