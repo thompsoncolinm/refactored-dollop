@@ -7,7 +7,9 @@ import {
   PerspectiveCamera,
   WebGLRenderer,
   Mesh,
-  MeshBasicMaterial,
+  MeshLambertMaterial,
+  AmbientLight,
+  DirectionalLight,
   BoxGeometry,
   SphereGeometry,
   ConeGeometry,
@@ -43,6 +45,8 @@ function createGeometry(shape: Shape3DType) {
   }
 }
 
+const MIN_SIZE = 1;
+
 export class Shape3DRenderer {
   private scene: unknown = null;
   private camera: unknown = null;
@@ -53,6 +57,16 @@ export class Shape3DRenderer {
   private animationId: number | null = null;
   private container: HTMLElement | null = null;
   private resizeHandler: (() => void) | null = null;
+  private resizeObserver: ResizeObserver | null = null;
+
+  private applySize(): void {
+    if (!this.container || !this.camera || !this.renderer) return;
+    const w = Math.max(MIN_SIZE, this.container.clientWidth);
+    const h = Math.max(MIN_SIZE, this.container.clientHeight);
+    (this.camera as { aspect: number; updateProjectionMatrix: () => void }).aspect = w / h;
+    (this.camera as { updateProjectionMatrix: () => void }).updateProjectionMatrix();
+    (this.renderer as { setSize: (w: number, h: number) => void }).setSize(w, h);
+  }
 
   mount(container: HTMLElement, shape: Shape3DType, colorName?: string): void {
     this.dispose();
@@ -61,15 +75,26 @@ export class Shape3DRenderer {
     const camera = new PerspectiveCamera(50, 1, 0.1, 100);
     camera.position.z = 2.5;
     const renderer = new WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(container.clientWidth, container.clientHeight);
+    const w = Math.max(MIN_SIZE, container.clientWidth);
+    const h = Math.max(MIN_SIZE, container.clientHeight);
+    renderer.setSize(w, h);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.domElement.style.display = 'block';
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
     container.appendChild(renderer.domElement);
 
     const geometry = createGeometry(shape);
     const hex = colorName && COLOR_TO_HEX[colorName] ? new Color(COLOR_TO_HEX[colorName]).getHex() : pickColor();
-    const material = new MeshBasicMaterial({ color: hex });
+    const material = new MeshLambertMaterial({ color: hex });
     const mesh = new Mesh(geometry, material);
     scene.add(mesh);
+
+    const ambient = new AmbientLight(0xffffff, 0.55);
+    scene.add(ambient);
+    const dir = new DirectionalLight(0xffffff, 0.85);
+    dir.position.set(2, 3, 4);
+    scene.add(dir);
 
     this.scene = scene;
     this.camera = camera;
@@ -90,21 +115,26 @@ export class Shape3DRenderer {
     };
     animate();
 
-    this.resizeHandler = (): void => {
-      if (!this.container || !this.camera || !this.renderer) return;
-      const w = this.container.clientWidth;
-      const h = this.container.clientHeight;
-      (this.camera as { aspect: number; updateProjectionMatrix: () => void }).aspect = w / h;
-      (this.camera as { updateProjectionMatrix: () => void }).updateProjectionMatrix();
-      (this.renderer as { setSize: (w: number, h: number) => void }).setSize(w, h);
-    };
+    this.resizeHandler = (): void => this.applySize();
     window.addEventListener('resize', this.resizeHandler);
+
+    this.resizeObserver = new ResizeObserver(() => this.applySize());
+    this.resizeObserver.observe(container);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => this.applySize());
+    });
   }
 
   dispose(): void {
     if (this.animationId != null) {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
+    }
+    if (this.resizeObserver && this.container) {
+      this.resizeObserver.unobserve(this.container);
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
     }
     if (this.geometry && typeof (this.geometry as { dispose?: () => void }).dispose === 'function') {
       (this.geometry as { dispose: () => void }).dispose();

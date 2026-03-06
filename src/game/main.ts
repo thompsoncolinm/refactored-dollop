@@ -246,8 +246,9 @@ export function init(): void {
   (root.querySelector('[data-start-btn]') as HTMLButtonElement)?.addEventListener('click', async () => {
     await audio?.unlock();
     if (audioOverlay) audioOverlay.classList.add('hidden');
-    const selected = root.querySelector('input[name="difficulty"]:checked') as HTMLInputElement;
-    const difficulty = (selected ? Number(selected.value) : 1) as DifficultyLevel;
+    const selected = root.querySelector('input[name="difficulty"]:checked') as HTMLInputElement | null;
+    const fromUrl = root.dataset.initialLevel ? Number(root.dataset.initialLevel) : 0;
+    const difficulty = (selected ? Number(selected.value) : (fromUrl >= 1 && fromUrl <= 6 ? fromUrl : 1)) as DifficultyLevel;
     if (!Number.isInteger(difficulty) || difficulty < 1 || difficulty > 6) return;
     startNewGame(difficulty);
   });

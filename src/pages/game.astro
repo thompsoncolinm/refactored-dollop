@@ -3,6 +3,16 @@ import Layout from '../layouts/Layout.astro';
 
 const levelParam = Astro.url.searchParams.get('level');
 const initialLevel = levelParam && /^[1-6]$/.test(levelParam) ? levelParam : '';
+
+const LEVEL_LABELS: Record<string, string> = {
+  '1': 'Solid colours',
+  '2': '2D shapes',
+  '3': '3D shapes',
+  '4': '2D + 3D',
+  '5': 'Coloured 2D',
+  '6': 'Coloured 3D',
+};
+const levelLabel = initialLevel ? LEVEL_LABELS[initialLevel] ?? `Level ${initialLevel}` : '';
 ---
 
 <Layout title="Voice Guessing Game">
@@ -16,36 +26,42 @@ const initialLevel = levelParam && /^[1-6]$/.test(levelParam) ? levelParam : '';
       </div>
 
       <section data-game-menu class="space-y-6" aria-label="Game menu">
-        <h2 class="text-2xl font-bold text-center">Voice Guessing Game</h2>
-        <p class="text-center text-sm text-gray-600 dark:text-gray-400">Select difficulty, then start. Say your guess out loud; the game listens. Playing with someone? They can type your guess for you.</p>
+        <h2 class="text-2xl font-bold text-center">{initialLevel ? `Level ${initialLevel} – ${levelLabel}` : 'Voice Guessing Game'}</h2>
+        <p class="text-center text-sm text-gray-600 dark:text-gray-400">
+          {initialLevel
+            ? 'Say your guess out loud; the game listens. Playing with someone? They can type your guess for you.'
+            : 'Select difficulty, then start. Say your guess out loud; the game listens. Playing with someone? They can type your guess for you.'}
+        </p>
         <p class="text-center text-xs text-amber-600 dark:text-amber-400" role="note">For voice to work, use <strong>Google Chrome</strong>. Other browsers (e.g. Brave) may block speech recognition.</p>
-        <fieldset class="space-y-2" data-difficulty-fieldset>
-          <legend class="sr-only">Difficulty level</legend>
-          <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
-            <input type="radio" name="difficulty" value="1" checked class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 1: Solid colours" />
-            <span>1 – Solid colours</span>
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
-            <input type="radio" name="difficulty" value="2" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 2: 2D shapes" />
-            <span>2 – 2D shapes</span>
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
-            <input type="radio" name="difficulty" value="3" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 3: 3D shapes" />
-            <span>3 – 3D shapes</span>
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
-            <input type="radio" name="difficulty" value="4" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 4: 2D and 3D mix" />
-            <span>4 – 2D + 3D mix</span>
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
-            <input type="radio" name="difficulty" value="5" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 5: Coloured 2D" />
-            <span>5 – Coloured 2D</span>
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
-            <input type="radio" name="difficulty" value="6" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 6: Coloured 3D" />
-            <span>6 – Coloured 3D</span>
-          </label>
-        </fieldset>
+        {!initialLevel ? (
+          <fieldset class="space-y-2" data-difficulty-fieldset>
+            <legend class="sr-only">Difficulty level</legend>
+            <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
+              <input type="radio" name="difficulty" value="1" checked class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 1: Solid colours" />
+              <span>1 – Solid colours</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
+              <input type="radio" name="difficulty" value="2" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 2: 2D shapes" />
+              <span>2 – 2D shapes</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
+              <input type="radio" name="difficulty" value="3" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 3: 3D shapes" />
+              <span>3 – 3D shapes</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
+              <input type="radio" name="difficulty" value="4" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 4: 2D and 3D mix" />
+              <span>4 – 2D + 3D mix</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
+              <input type="radio" name="difficulty" value="5" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 5: Coloured 2D" />
+              <span>5 – Coloured 2D</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
+              <input type="radio" name="difficulty" value="6" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 6: Coloured 3D" />
+              <span>6 – Coloured 3D</span>
+            </label>
+          </fieldset>
+        ) : null}
         <button type="button" data-start-btn class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:outline-none transition-colors" aria-label="Start game">Start</button>
       </section>
 

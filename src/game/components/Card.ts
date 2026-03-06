@@ -59,7 +59,7 @@ export class CardComponent {
 
     if (data.kind === 'shape3d' && data.shape3d) {
       const wrap = document.createElement('div');
-      wrap.className = 'w-full h-full min-h-[200px]';
+      wrap.className = 'w-full h-full min-h-[200px] min-w-[200px]';
       this.contentEl.appendChild(wrap);
       this.shape3d = new Shape3DRenderer();
       this.shape3d.mount(wrap, data.shape3d, data.color);
