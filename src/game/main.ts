@@ -10,6 +10,7 @@ import { AudioController } from './components/AudioController';
 import { OrientationHandler } from './components/OrientationHandler';
 import { FPSMonitor } from './components/FPSMonitor';
 import { DebugPanel } from './components/DebugPanel';
+import { VoiceLevelIndicator } from './components/VoiceLevelIndicator';
 import { Haptics } from './components/Haptics';
 import * as SessionStorage from './components/SessionStorage';
 import { normalize, resolveToCanonical } from './components/NormalizeGuess';
@@ -42,6 +43,7 @@ export function init(): void {
   let orientation: OrientationHandler | null = null;
   let fpsMonitor: FPSMonitor | null = null;
   let debugPanel: DebugPanel | null = null;
+  let voiceLevelIndicator: VoiceLevelIndicator | null = null;
   let lastTranscriptRaw = '';
   let lastTranscriptResolved: string | null = null;
   let orientationPaused = false;
@@ -65,6 +67,11 @@ export function init(): void {
     if (debugDescEl) debugDescEl.textContent = text;
   }
 
+  function setISaidItButtonLabel(transcript: string): void {
+    const btn = root.querySelector('[data-i-said-it-btn]') as HTMLButtonElement | null;
+    if (btn) btn.textContent = transcript ? `I said ${transcript}` : 'I said it';
+  }
+
   audio = new AudioController();
   audio.setOnBlocked(() => {
     if (audioOverlay) audioOverlay.classList.remove('hidden');
@@ -74,11 +81,25 @@ export function init(): void {
     if (audioOverlay) audioOverlay.classList.add('hidden');
   });
 
+  const initialDifficulty = root.dataset.initialDifficulty;
+  const initialLevel = root.dataset.initialLevel;
+  const isLevelLocked = initialDifficulty !== undefined && initialDifficulty !== '';
+
+  if (initialLevel) {
+    const radio = root.querySelector(`input[name="difficulty"][value="${initialLevel}"]`) as HTMLInputElement | null;
+    if (radio) {
+      radio.checked = true;
+    }
+  }
+
   const savedState = SessionStorage.load();
-  if (savedState && savedState.currentCardIndex < savedState.deckLength) {
+  const canResume = savedState && savedState.currentCardIndex < savedState.deckLength;
+  const showResume = canResume && (!isLevelLocked || savedState.difficulty === 1);
+
+  if (showResume) {
     showScreen('resume');
   } else {
-    SessionStorage.clear();
+    if (!canResume) SessionStorage.clear();
     showScreen('menu');
   }
 
@@ -105,8 +126,10 @@ export function init(): void {
         if (!card || !playingEl) return;
         card.setContent(c);
         setDebugDesc(`${c.kind} ${c.color ?? ''} ${c.shape2d ?? ''} ${c.shape3d ?? ''}`);
+        setISaidItButtonLabel('');
         if (voice?.isSupported() && !orientationPaused) {
-          voice.startListening(onVoiceResult);
+          void voiceLevelIndicator?.start();
+          voice.startListening(onVoiceResult, setISaidItButtonLabel);
         }
         debugPanel?.update();
       },
@@ -132,6 +155,11 @@ export function init(): void {
       cardContainer.appendChild(cardMarkup);
     }
     card = new CardComponent(cardContainer.querySelector('[data-card-face]')?.parentElement ?? cardContainer);
+    const voiceLevelContainer = root.querySelector('[data-voice-level-container]') as HTMLElement;
+    if (voiceLevelContainer) {
+      voiceLevelIndicator = new VoiceLevelIndicator();
+      voiceLevelIndicator.mount(voiceLevelContainer);
+    }
     engine.resumeGame(state);
     showScreen('playing');
     orientation = new OrientationHandler();
@@ -144,7 +172,7 @@ export function init(): void {
         orientationPaused = false;
         if (engine && voice?.isSupported()) {
           const cur = engine.getCurrentCard();
-          if (cur) voice.startListening(onVoiceResult);
+          if (cur) voice.startListening(onVoiceResult, setISaidItButtonLabel);
         }
       },
     });
@@ -160,12 +188,21 @@ export function init(): void {
         audioUnlocked: audio?.isUnlocked() ?? false,
         fps: fpsMonitor?.getAverageFPS() ?? 0,
         sessionState: JSON.stringify(SessionStorage.load()),
-      }));
+      }), {
+        onSoundCheck: () => audio?.playTestSound(),
+        onSimulateGuess: () => {
+          const c = engine?.getCurrentCard();
+          const word = c?.kind === 'color' ? (c.color ?? 'red') : (c?.shape2d ?? c?.shape3d ?? 'red');
+          onVoiceResult(word);
+        },
+      });
     }
   }
 
   function onVoiceResult(transcript: string): void {
     if (orientationPaused || !engine) return;
+    voiceLevelIndicator?.stop();
+    voice?.stop();
     const normalized = normalize(transcript);
     lastTranscriptRaw = transcript;
     lastTranscriptResolved = transcript === 'no response' ? 'No response' : resolveToCanonical(normalized);
@@ -196,8 +233,10 @@ export function init(): void {
         if (!card || !playingEl) return;
         card.setContent(c);
         setDebugDesc(`${c.kind} ${c.color ?? ''} ${c.shape2d ?? ''} ${c.shape3d ?? ''}`);
+        setISaidItButtonLabel('');
         if (voice?.isSupported() && !orientationPaused) {
-          voice.startListening(onVoiceResult);
+          void voiceLevelIndicator?.start();
+          voice.startListening(onVoiceResult, setISaidItButtonLabel);
         }
         debugPanel?.update();
       },
@@ -224,6 +263,11 @@ export function init(): void {
       cardContainer.appendChild(cardMarkup);
     }
     card = new CardComponent(cardContainer.querySelector('[data-card-face]')?.parentElement ?? cardContainer);
+    const voiceLevelContainer = root.querySelector('[data-voice-level-container]') as HTMLElement;
+    if (voiceLevelContainer) {
+      voiceLevelIndicator = new VoiceLevelIndicator();
+      voiceLevelIndicator.mount(voiceLevelContainer);
+    }
     engine.startNewGame(difficulty);
     showScreen('playing');
 
@@ -237,7 +281,7 @@ export function init(): void {
         orientationPaused = false;
         if (engine && voice?.isSupported()) {
           const cur = engine.getCurrentCard();
-          if (cur) voice.startListening(onVoiceResult);
+          if (cur) voice.startListening(onVoiceResult, setISaidItButtonLabel);
         }
       },
     });
@@ -253,19 +297,35 @@ export function init(): void {
         audioUnlocked: audio?.isUnlocked() ?? false,
         fps: fpsMonitor?.getAverageFPS() ?? 0,
         sessionState: JSON.stringify(SessionStorage.load()),
-      }));
+      }), {
+        onSoundCheck: () => audio?.playTestSound(),
+        onSimulateGuess: () => {
+          const c = engine?.getCurrentCard();
+          const word = c?.kind === 'color' ? (c.color ?? 'red') : (c?.shape2d ?? c?.shape3d ?? 'red');
+          onVoiceResult(word);
+        },
+      });
     }
   }
+
+  root.addEventListener('click', (e) => {
+    if (!(e.target as HTMLElement).closest('[data-i-said-it-btn]')) return;
+    if (!engine) return;
+    const guessed = voice?.getLastTranscript()?.trim() || 'I said it';
+    onVoiceResult(guessed);
+  });
 
   (root.querySelector('[data-play-again-btn]') as HTMLButtonElement)?.addEventListener('click', () => {
     showScreen('menu');
     card?.dispose();
+    voiceLevelIndicator?.dispose();
     orientation?.dispose();
     fpsMonitor?.stop();
     debugPanel?.dispose();
     engine = null;
     card = null;
     voice = null;
+    voiceLevelIndicator = null;
     orientation = null;
     fpsMonitor = null;
     debugPanel = null;

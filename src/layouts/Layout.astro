@@ -5,6 +5,15 @@ interface Props {
 }
 
 const { title } = Astro.props;
+
+const levels = [
+	{ level: 1, label: 'Colours', href: '/' },
+	{ level: 2, label: '2D shapes', href: '/game?level=2' },
+	{ level: 3, label: '3D shapes', href: '/game?level=3' },
+	{ level: 4, label: '2D + 3D', href: '/game?level=4' },
+	{ level: 5, label: 'Coloured 2D', href: '/game?level=5' },
+	{ level: 6, label: 'Coloured 3D', href: '/game?level=6' },
+];
 ---
 
 <!doctype html>
@@ -19,6 +28,29 @@ const { title } = Astro.props;
 		<title>{title}</title>
 	</head>
 	<body>
+		<header class="bg-logo">
+			<div class="flex-1 h-full flex items-center justify-center">
+				<h1 class="text-xl font-semibold">Voice Guessing Game</h1>
+			</div>
+			<button class="nav-toggle flex md:hidden before:flex before:hidden" aria-label="Mobile Menu">
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<line x1="3" y1="12" x2="21" y2="12"></line>
+					<line x1="3" y1="6" x2="21" y2="6"></line>
+					<line x1="3" y1="18" x2="21" y2="18"></line>
+				</svg>
+			</button>
+			<nav class="relative" aria-label="Difficulty levels">
+				<ul class="nav-menu my-2 flex hidden md:flex flex-col items-start md:flex-row md:justify-center md:gap-6 lg:gap-8">
+					{levels.map(({ level, label, href }) => (
+						<li>
+							<a href={href} class="nav-link block py-2 px-1 focus:ring-2 focus:ring-offset-2 rounded" aria-label={`Level ${level}: ${label}`}>
+								{level}. {label}
+							</a>
+						</li>
+					))}
+				</ul>
+			</nav>
+		</header>
 		<slot />
 	</body>
 </html>

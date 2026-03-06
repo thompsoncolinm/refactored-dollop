@@ -17,16 +17,25 @@ export interface DebugPanelData {
 
 const LONG_PRESS_MS = 800;
 
+export interface DebugPanelOptions {
+  onSoundCheck?: () => void | Promise<void>;
+  onSimulateGuess?: () => void;
+}
+
 export class DebugPanel {
   private container: HTMLElement | null = null;
   private panelEl: HTMLElement | null = null;
   private getData: (() => DebugPanelData) | null = null;
+  private onSoundCheck: (() => void | Promise<void>) | null = null;
+  private onSimulateGuess: (() => void) | null = null;
   private longPressTimer: ReturnType<typeof setTimeout> | null = null;
   private keyHandler: ((e: KeyboardEvent) => void) | null = null;
 
-  mount(root: HTMLElement, getData: () => DebugPanelData): void {
+  mount(root: HTMLElement, getData: () => DebugPanelData, options?: DebugPanelOptions): void {
     if (!DEBUG_PANEL_ENABLED) return;
     this.getData = getData;
+    this.onSoundCheck = options?.onSoundCheck ?? null;
+    this.onSimulateGuess = options?.onSimulateGuess ?? null;
     this.container = root;
 
     const trigger = document.createElement('button');
@@ -77,15 +86,40 @@ export class DebugPanel {
         sessionState: data.sessionState,
       }, null, 2))}</pre>
     `;
+    const buttons = document.createElement('div');
+    buttons.className = 'mt-2 flex gap-2 flex-wrap';
     const close = document.createElement('button');
     close.type = 'button';
-    close.className = 'mt-2 px-2 py-1 bg-gray-700 rounded';
+    close.className = 'px-2 py-1 bg-gray-700 rounded';
     close.textContent = 'Close';
     close.addEventListener('click', () => {
       panel.remove();
       this.panelEl = null;
     });
-    panel.appendChild(close);
+    buttons.appendChild(close);
+    if (this.onSoundCheck) {
+      const soundCheck = document.createElement('button');
+      soundCheck.type = 'button';
+      soundCheck.className = 'px-2 py-1 bg-gray-700 rounded';
+      soundCheck.textContent = 'Sound check';
+      soundCheck.setAttribute('aria-label', 'Play test sound');
+      soundCheck.addEventListener('click', () => {
+        void this.onSoundCheck?.();
+      });
+      buttons.appendChild(soundCheck);
+    }
+    if (this.onSimulateGuess) {
+      const sim = document.createElement('button');
+      sim.type = 'button';
+      sim.className = 'px-2 py-1 bg-gray-700 rounded';
+      sim.textContent = 'Simulate guess';
+      sim.setAttribute('aria-label', 'Advance card as if you said the answer');
+      sim.addEventListener('click', () => {
+        this.onSimulateGuess?.();
+      });
+      buttons.appendChild(sim);
+    }
+    panel.appendChild(buttons);
     this.container.appendChild(panel);
     this.panelEl = panel;
   }

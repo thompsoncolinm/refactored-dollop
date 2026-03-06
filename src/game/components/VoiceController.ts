@@ -1,17 +1,21 @@
 /**
- * Web Speech API wrapper: start/stop recognition, 6s timeout per card, callback with raw transcript or "no response".
+ * Web Speech API wrapper: listens for speech and reports transcript updates (for UI).
+ * Advance happens only when caller submits (e.g. button click); or on 6s timeout ("no response").
  */
 
 import { VOICE_TIMEOUT_MS } from '../constants';
 
-
 export type VoiceResultCallback = (transcript: string) => void;
+export type TranscriptUpdateCallback = (transcript: string) => void;
 
 export class VoiceController {
   private recognition: SpeechRecognition | null = null;
   private timeoutId: ReturnType<typeof setTimeout> | null = null;
   private onResult: VoiceResultCallback | null = null;
+  private onTranscriptUpdate: TranscriptUpdateCallback | null = null;
   private _listening = false;
+  private resultAlreadySent = false;
+  private lastTranscript = '';
 
   constructor() {
     const Ctor = (typeof window !== 'undefined' && (window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition) ||
@@ -19,15 +23,32 @@ export class VoiceController {
     if (Ctor) {
       const rec = new (Ctor as new () => SpeechRecognition)();
       this.recognition = rec;
-      rec.continuous = false;
-      rec.interimResults = false;
+      rec.continuous = true;
+      rec.interimResults = true;
       rec.lang = 'en-US';
+      rec.maxAlternatives = 3;
       rec.onresult = (e: SpeechRecognitionEvent) => {
-        this.clearTimeout();
-        const result = e.results[e.results.length - 1];
-        const transcript = result.isFinal ? result[0].transcript : '';
-        if (transcript && this.onResult) {
-          this.onResult(transcript.trim());
+        const results = e.results;
+        if (!results || results.length === 0) return;
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          let transcript = '';
+          if (result.length > 0) {
+            for (let a = 0; a < result.length; a++) {
+              const alt = result[a];
+              if (alt && typeof (alt as { transcript?: string }).transcript === 'string') {
+                const t = (alt as { transcript: string }).transcript.trim();
+                if (t) {
+                  transcript = t;
+                  break;
+                }
+              }
+            }
+          }
+          if (transcript) {
+            this.lastTranscript = transcript;
+            this.onTranscriptUpdate?.(transcript);
+          }
         }
       };
       rec.onerror = () => {
@@ -37,6 +58,10 @@ export class VoiceController {
         this._listening = false;
       };
     }
+  }
+
+  getLastTranscript(): string {
+    return this.lastTranscript;
   }
 
   isSupported(): boolean {
@@ -55,28 +80,46 @@ export class VoiceController {
   }
 
   /**
-   * Start listening for one card. On result or 6s timeout, invokes callback and stops.
+   * Start listening. Reports transcript updates via onTranscriptUpdate; only calls onResult on 6s timeout ("no response").
+   * Caller submits guess (e.g. button click) by reading getLastTranscript() and advancing themselves.
    */
-  startListening(callback: VoiceResultCallback): void {
-    this.onResult = callback;
+  startListening(
+    onResult: VoiceResultCallback,
+    onTranscriptUpdate?: TranscriptUpdateCallback
+  ): void {
+    this.onResult = onResult;
+    this.onTranscriptUpdate = onTranscriptUpdate ?? null;
+    this.resultAlreadySent = false;
+    this.lastTranscript = '';
     this.clearTimeout();
     if (!this.recognition) {
-      callback('no response');
+      onResult('no response');
       return;
     }
     this.timeoutId = setTimeout(() => {
       this.timeoutId = null;
+      this.resultAlreadySent = true;
       this.stop();
       if (this.onResult) {
         this.onResult('no response');
       }
     }, VOICE_TIMEOUT_MS);
     try {
-      this.recognition.start();
-      this._listening = true;
+      setTimeout(() => {
+        if (this.resultAlreadySent) return;
+        try {
+          this.recognition?.start();
+          this._listening = true;
+        } catch {
+          this.clearTimeout();
+          this.resultAlreadySent = true;
+          onResult('no response');
+        }
+      }, 50);
     } catch {
       this.clearTimeout();
-      callback('no response');
+      this.resultAlreadySent = true;
+      onResult('no response');
     }
   }
 

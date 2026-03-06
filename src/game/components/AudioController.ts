@@ -114,6 +114,17 @@ export class AudioController {
     return this.play('incorrect', 330);
   }
 
+  /**
+   * Play a short test sound (e.g. for debug "Sound check"). Unlocks audio if needed.
+   */
+  async playTestSound(): Promise<void> {
+    if (!this.unlocked) {
+      const ok = await this.unlock();
+      if (!ok) return;
+    }
+    await this.play('nextCard', 523);
+  }
+
   isUnlocked(): boolean {
     return this.unlocked;
   }

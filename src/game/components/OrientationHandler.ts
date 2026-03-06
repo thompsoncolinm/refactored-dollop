@@ -1,5 +1,6 @@
 /**
- * Listens for orientationchange; in landscape shows full-screen overlay "Rotate to portrait", pauses voice and animations. Resumes in portrait.
+ * Listens for orientationchange; on mobile/tablet only, in landscape shows full-screen overlay
+ * "Rotate to portrait", pauses voice and animations. Desktop/wide viewports are never asked to rotate.
  */
 
 export interface OrientationCallbacks {
@@ -7,9 +8,18 @@ export interface OrientationCallbacks {
   onResume: () => void;
 }
 
+/** Viewport width below this is treated as mobile/tablet for orientation overlay. */
+const MOBILE_MAX_WIDTH_PX = 768;
+
 function isLandscape(): boolean {
   if (typeof window === 'undefined') return false;
   return window.matchMedia('(orientation: landscape)').matches;
+}
+
+/** True when viewport is narrow (phone/small tablet). Desktop users are not shown the rotate overlay. */
+function isMobileViewport(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia(`(max-width: ${MOBILE_MAX_WIDTH_PX}px)`).matches;
 }
 
 export class OrientationHandler {
@@ -31,12 +41,14 @@ export class OrientationHandler {
     this.mediaQuery = window.matchMedia('(orientation: landscape)');
     this.mediaQuery.addEventListener('change', this.boundCheck);
     window.addEventListener('orientationchange', this.boundCheck);
+    window.addEventListener('resize', this.boundCheck);
     this.check();
   }
 
   private check(): void {
     if (!this.overlay) return;
-    if (isLandscape()) {
+    const shouldPause = isMobileViewport() && isLandscape();
+    if (shouldPause) {
       this.overlay.classList.remove('hidden');
       this.overlay.classList.add('flex');
       if (!this.paused && this.callbacks) {
@@ -57,6 +69,7 @@ export class OrientationHandler {
     if (this.boundCheck) {
       this.mediaQuery?.removeEventListener('change', this.boundCheck);
       window.removeEventListener('orientationchange', this.boundCheck);
+      window.removeEventListener('resize', this.boundCheck);
       this.boundCheck = null;
     }
     this.overlay?.remove();

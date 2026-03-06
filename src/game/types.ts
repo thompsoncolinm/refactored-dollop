@@ -72,7 +72,7 @@ export const SHAPE_NAME_MAP: ShapeNameMapEntry[] = [
   { internalId: 'indigo', displayName: 'Indigo', voiceSynonyms: ['indigo'] },
 ];
 
-/** Tailwind color name to hex (subset). */
+/** Tailwind color name to hex (for SVG/Three.js). */
 export const COLOR_TO_HEX: Record<string, string> = {
   red: '#ef4444',
   blue: '#3b82f6',
@@ -83,4 +83,21 @@ export const COLOR_TO_HEX: Record<string, string> = {
   pink: '#ec4899',
   indigo: '#6366f1',
   gray: '#6b7280',
+};
+
+/**
+ * Tailwind background classes for solid colour cards (from Tailwind color palette).
+ * Use full class names so Tailwind content detection includes them.
+ * @see https://tailwindcss.com/docs/colors
+ */
+export const COLOR_TO_TAILWIND_BG: Record<string, string> = {
+  red: 'bg-red-500',
+  blue: 'bg-blue-500',
+  green: 'bg-green-500',
+  yellow: 'bg-yellow-500',
+  purple: 'bg-purple-500',
+  orange: 'bg-orange-500',
+  pink: 'bg-pink-500',
+  indigo: 'bg-indigo-500',
+  gray: 'bg-gray-500',
 };

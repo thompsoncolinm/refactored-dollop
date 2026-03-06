@@ -4,6 +4,7 @@
 
 import { gsap } from 'gsap';
 import type { CardData } from '../types';
+import { COLOR_TO_TAILWIND_BG } from '../types';
 import { renderShape2D } from './Shape2D';
 import { Shape3DRenderer } from './Shape3D';
 import { Haptics } from './Haptics';
@@ -41,8 +42,9 @@ export class CardComponent {
 
     if (data.kind === 'color') {
       const div = document.createElement('div');
-      div.className = 'w-full h-full rounded-lg';
-      div.style.backgroundColor = data.color ?? '#6b7280';
+      const colorName = data.color ?? 'gray';
+      const bgClass = COLOR_TO_TAILWIND_BG[colorName] ?? 'bg-gray-500';
+      div.className = `w-full h-full rounded-lg ${bgClass}`;
       this.contentEl.appendChild(div);
       return;
     }
