@@ -14,7 +14,7 @@ import { VoiceLevelIndicator } from './components/VoiceLevelIndicator';
 import { Haptics } from './components/Haptics';
 import * as SessionStorage from './components/SessionStorage';
 import { normalize, resolveToCanonical } from './components/NormalizeGuess';
-import { DEBUG_PANEL_ENABLED } from './constants';
+import { DEBUG_PANEL_ENABLED, DEBUG_VOICE } from './constants';
 
 function getRoot(): HTMLElement {
   const el = document.getElementById('game-root');
@@ -47,7 +47,6 @@ export function init(): void {
   let lastTranscriptRaw = '';
   let lastTranscriptResolved: string | null = null;
   let orientationPaused = false;
-
   const menuEl = root.querySelector('[data-game-menu]') as HTMLElement;
   const resumeEl = root.querySelector('[data-game-resume]') as HTMLElement;
   const playingEl = root.querySelector('[data-game-playing]') as HTMLElement;
@@ -68,8 +67,34 @@ export function init(): void {
   }
 
   function setISaidItButtonLabel(transcript: string): void {
+    if (DEBUG_VOICE) console.log('[Voice] setISaidItButtonLabel(', JSON.stringify(transcript), ')');
     const btn = root.querySelector('[data-i-said-it-btn]') as HTMLButtonElement | null;
     if (btn) btn.textContent = transcript ? `I said ${transcript}` : 'I said it';
+  }
+
+  function showVoiceError(error: string, _message?: string): void {
+    const el = root.querySelector('[data-voice-error]') as HTMLElement | null;
+    if (!el) return;
+    const friendly =
+      error === 'network'
+        ? 'Speech recognition can\'t connect. Someone with you can type the guess below.'
+        : error === 'not-allowed'
+          ? 'Microphone access was denied. Someone with you can type the guess below.'
+          : error === 'no-speech'
+            ? 'No speech detected. Say it again or have someone type the guess below.'
+            : `Speech error: ${error}. Someone with you can type the guess below.`;
+    el.textContent = friendly;
+    el.classList.remove('hidden');
+    const input = root.querySelector('[data-voice-typed-input]') as HTMLInputElement | null;
+    input?.focus();
+  }
+
+  function clearVoiceError(): void {
+    const el = root.querySelector('[data-voice-error]') as HTMLElement | null;
+    if (el) {
+      el.textContent = '';
+      el.classList.add('hidden');
+    }
   }
 
   audio = new AudioController();
@@ -127,9 +152,12 @@ export function init(): void {
         card.setContent(c);
         setDebugDesc(`${c.kind} ${c.color ?? ''} ${c.shape2d ?? ''} ${c.shape3d ?? ''}`);
         setISaidItButtonLabel('');
+        clearVoiceError();
+        const typedEl = root.querySelector('[data-voice-typed-input]') as HTMLInputElement | null;
+        if (typedEl) typedEl.value = '';
         if (voice?.isSupported() && !orientationPaused) {
           void voiceLevelIndicator?.start();
-          voice.startListening(onVoiceResult, setISaidItButtonLabel);
+          voice.startListening(onVoiceResult, setISaidItButtonLabel, showVoiceError);
         }
         debugPanel?.update();
       },
@@ -172,7 +200,7 @@ export function init(): void {
         orientationPaused = false;
         if (engine && voice?.isSupported()) {
           const cur = engine.getCurrentCard();
-          if (cur) voice.startListening(onVoiceResult, setISaidItButtonLabel);
+          if (cur) voice.startListening(onVoiceResult, setISaidItButtonLabel, showVoiceError);
         }
       },
     });
@@ -184,6 +212,7 @@ export function init(): void {
         currentCard: engine?.getCurrentCard() ?? null,
         lastTranscriptRaw,
         lastTranscriptResolved,
+        lastSpeechError: voice?.getLastError() ?? null,
         hapticsSupported: typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function',
         audioUnlocked: audio?.isUnlocked() ?? false,
         fps: fpsMonitor?.getAverageFPS() ?? 0,
@@ -234,9 +263,12 @@ export function init(): void {
         card.setContent(c);
         setDebugDesc(`${c.kind} ${c.color ?? ''} ${c.shape2d ?? ''} ${c.shape3d ?? ''}`);
         setISaidItButtonLabel('');
+        clearVoiceError();
+        const typedEl = root.querySelector('[data-voice-typed-input]') as HTMLInputElement | null;
+        if (typedEl) typedEl.value = '';
         if (voice?.isSupported() && !orientationPaused) {
           void voiceLevelIndicator?.start();
-          voice.startListening(onVoiceResult, setISaidItButtonLabel);
+          voice.startListening(onVoiceResult, setISaidItButtonLabel, showVoiceError);
         }
         debugPanel?.update();
       },
@@ -281,7 +313,7 @@ export function init(): void {
         orientationPaused = false;
         if (engine && voice?.isSupported()) {
           const cur = engine.getCurrentCard();
-          if (cur) voice.startListening(onVoiceResult, setISaidItButtonLabel);
+          if (cur) voice.startListening(onVoiceResult, setISaidItButtonLabel, showVoiceError);
         }
       },
     });
@@ -293,6 +325,7 @@ export function init(): void {
         currentCard: engine?.getCurrentCard() ?? null,
         lastTranscriptRaw,
         lastTranscriptResolved,
+        lastSpeechError: voice?.getLastError() ?? null,
         hapticsSupported: typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function',
         audioUnlocked: audio?.isUnlocked() ?? false,
         fps: fpsMonitor?.getAverageFPS() ?? 0,
@@ -309,10 +342,30 @@ export function init(): void {
   }
 
   root.addEventListener('click', (e) => {
-    if (!(e.target as HTMLElement).closest('[data-i-said-it-btn]')) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-i-said-it-btn]')) {
+      if (!engine) return;
+      const guessed = voice?.getLastTranscript()?.trim() || 'I said it';
+      onVoiceResult(guessed);
+      return;
+    }
+    if (target.closest('[data-voice-typed-submit]')) {
+      if (!engine) return;
+      const input = root.querySelector('[data-voice-typed-input]') as HTMLInputElement | null;
+      const typed = input?.value?.trim() || '';
+      if (DEBUG_VOICE) console.log('[Voice] typed submit:', JSON.stringify(typed));
+      onVoiceResult(typed || 'no response');
+      if (input) input.value = '';
+    }
+  });
+  const typedInput = root.querySelector('[data-voice-typed-input]') as HTMLInputElement | null;
+  typedInput?.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
     if (!engine) return;
-    const guessed = voice?.getLastTranscript()?.trim() || 'I said it';
-    onVoiceResult(guessed);
+    const typed = (e.target as HTMLInputElement)?.value?.trim() || '';
+    if (DEBUG_VOICE) console.log('[Voice] typed submit (Enter):', JSON.stringify(typed));
+    onVoiceResult(typed || 'no response');
+    (e.target as HTMLInputElement).value = '';
   });
 
   (root.querySelector('[data-play-again-btn]') as HTMLButtonElement)?.addEventListener('click', () => {

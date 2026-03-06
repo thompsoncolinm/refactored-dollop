@@ -1,5 +1,5 @@
 /**
- * Debug panel: activate with "D" key or long-press (800ms) on top-right corner. Shows card data, transcript, haptics/audio, FPS, session state. Gated by DEBUG_PANEL_ENABLED.
+ * Debug panel: activate with Ctrl+Shift+D or long-press (800ms) on top-right corner. Shows card data, transcript, haptics/audio, FPS, session state. Gated by DEBUG_PANEL_ENABLED.
  */
 
 import { DEBUG_PANEL_ENABLED } from '../constants';
@@ -9,6 +9,7 @@ export interface DebugPanelData {
   currentCard: CardData | null;
   lastTranscriptRaw: string;
   lastTranscriptResolved: string | null;
+  lastSpeechError: { error: string; message?: string } | null;
   hapticsSupported: boolean;
   audioUnlocked: boolean;
   fps: number;
@@ -41,7 +42,7 @@ export class DebugPanel {
     const trigger = document.createElement('button');
     trigger.type = 'button';
     trigger.className = 'fixed top-4 right-4 w-10 h-10 rounded-full bg-gray-600/50 text-white text-xs z-40 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500';
-    trigger.setAttribute('aria-label', 'Open debug panel');
+    trigger.setAttribute('aria-label', 'Open debug panel (or press Ctrl+Shift+D)');
     trigger.textContent = '?';
     trigger.addEventListener('mousedown', () => {
       this.longPressTimer = setTimeout(() => this.toggle(), LONG_PRESS_MS);
@@ -57,7 +58,8 @@ export class DebugPanel {
     root.appendChild(trigger);
 
     this.keyHandler = (e: KeyboardEvent) => {
-      if (e.key === 'd' || e.key === 'D') {
+      if (e.key === 'D' && e.ctrlKey && e.shiftKey) {
+        e.preventDefault();
         this.toggle();
       }
     };
@@ -76,10 +78,12 @@ export class DebugPanel {
     panel.className = 'fixed bottom-4 left-4 right-4 max-h-64 overflow-auto z-50 bg-gray-900 text-green-400 text-xs p-4 rounded-lg border border-gray-700 font-mono';
     panel.innerHTML = `
       <div class="font-bold mb-2">Debug</div>
+      <p class="text-gray-400 text-[10px] mb-1">Open with Ctrl+Shift+D. Voice logs: set <code>localStorage.debugVoice='1'</code> and reload.</p>
       <pre>${escapeHtml(JSON.stringify({
         currentCard: data.currentCard,
         lastTranscriptRaw: data.lastTranscriptRaw,
         lastTranscriptResolved: data.lastTranscriptResolved,
+        lastSpeechError: data.lastSpeechError,
         hapticsSupported: data.hapticsSupported,
         audioUnlocked: data.audioUnlocked,
         fps: data.fps.toFixed(1),
@@ -133,6 +137,7 @@ export class DebugPanel {
           currentCard: data.currentCard,
           lastTranscriptRaw: data.lastTranscriptRaw,
           lastTranscriptResolved: data.lastTranscriptResolved,
+          lastSpeechError: data.lastSpeechError,
           hapticsSupported: data.hapticsSupported,
           audioUnlocked: data.audioUnlocked,
           fps: data.fps.toFixed(1),
