@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
 	content: ['./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}'],
+	darkMode: 'media',
 	theme: {
 		screens: {
 			'xs': '375px',
@@ -19,6 +20,9 @@ export default {
 			},
 			backgroundColor: {
 				'logo': '#92bdd0',
+			},
+			ringColor: {
+				DEFAULT: 'currentColor',
 			},
 		},
 	},

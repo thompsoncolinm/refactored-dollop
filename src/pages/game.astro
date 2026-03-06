@@ -1,0 +1,81 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="Voice Guessing Game">
+  <main class="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
+    <div id="game-root" class="container mx-auto px-4 py-8 max-w-lg">
+      <!-- Audio unlock overlay (hidden until audio blocked) -->
+      <div data-audio-overlay class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 hidden" role="alert">
+        <div class="bg-gray-800 rounded-lg p-6 text-center max-w-sm">
+          <p class="mb-4">Tap to enable sound</p>
+          <button type="button" data-audio-unlock class="px-4 py-2 bg-blue-600 text-white rounded-lg focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:outline-none" aria-label="Enable sound">Enable sound</button>
+        </div>
+      </div>
+
+      <!-- Menu: difficulty + start -->
+      <section data-game-menu class="space-y-6" aria-label="Game menu">
+        <h1 class="text-2xl font-bold text-center">Voice Guessing Game</h1>
+        <p class="text-center text-sm text-gray-600 dark:text-gray-400">Select difficulty, then start. Use voice to guess each card.</p>
+        <fieldset class="space-y-2">
+          <legend class="sr-only">Difficulty level</legend>
+          <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
+            <input type="radio" name="difficulty" value="1" checked class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 1: Solid colours" />
+            <span>1 – Solid colours</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
+            <input type="radio" name="difficulty" value="2" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 2: 2D shapes" />
+            <span>2 – 2D shapes</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
+            <input type="radio" name="difficulty" value="3" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 3: 3D shapes" />
+            <span>3 – 3D shapes</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
+            <input type="radio" name="difficulty" value="4" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 4: 2D and 3D mix" />
+            <span>4 – 2D + 3D mix</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
+            <input type="radio" name="difficulty" value="5" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 5: Coloured 2D" />
+            <span>5 – Coloured 2D</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
+            <input type="radio" name="difficulty" value="6" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 6: Coloured 3D" />
+            <span>6 – Coloured 3D</span>
+          </label>
+        </fieldset>
+        <button type="button" data-start-btn class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:outline-none transition-colors" aria-label="Start game">Start</button>
+      </section>
+
+      <!-- Resume prompt -->
+      <section data-game-resume class="hidden space-y-4" aria-label="Resume game">
+        <h2 class="text-xl font-bold text-center">Resume game?</h2>
+        <p class="text-center text-sm text-gray-600 dark:text-gray-400">You have a game in progress.</p>
+        <div class="flex gap-4 justify-center">
+          <button type="button" data-resume-btn class="px-4 py-2 bg-green-600 text-white rounded-lg focus:ring-2 focus:ring-offset-2 focus:ring-green-500" aria-label="Resume game">Resume</button>
+          <button type="button" data-new-game-btn class="px-4 py-2 bg-gray-600 text-white rounded-lg focus:ring-2 focus:ring-offset-2 focus:ring-gray-500" aria-label="Start new game">New game</button>
+        </div>
+      </section>
+
+      <!-- Playing: card -->
+      <section data-game-playing class="hidden space-y-4" aria-label="Playing" aria-live="polite">
+        <div data-card-container class="w-full max-w-md mx-auto min-h-[280px]" style="perspective: 1000px;">
+          <div class="relative w-full aspect-[3/4]" data-card-face style="transform-style: preserve-3d;">
+            <div class="absolute inset-0 rounded-xl bg-white dark:bg-gray-800 shadow-lg flex items-center justify-center" style="backface-visibility: hidden;" data-card-content></div>
+          </div>
+        </div>
+        <p class="text-center text-sm text-gray-500 dark:text-gray-400" data-debug-desc aria-hidden="true">Speak your guess.</p>
+      </section>
+
+      <!-- Results -->
+      <section data-game-results class="hidden space-y-4" aria-label="Results">
+        <h2 class="text-xl font-bold text-center">Results</h2>
+        <ul data-results-list class="list-none space-y-2 text-sm"></ul>
+        <button type="button" data-play-again-btn class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:outline-none" aria-label="Play again">Play again</button>
+      </section>
+    </div>
+  </main>
+  <script>
+    import { init } from '../game/main';
+    init();
+  </script>
+</Layout>
