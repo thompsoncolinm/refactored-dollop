@@ -35,6 +35,7 @@ const levelLabel = initialLevel ? LEVEL_LABELS[initialLevel] ?? `Level ${initial
         <p class="text-center text-xs text-amber-600 dark:text-amber-400" role="note">For voice to work, use <strong>Google Chrome</strong>. Other browsers (e.g. Brave) may block speech recognition.</p>
         {initialLevel ? (
           <div class="space-y-4">
+            <div class="flex justify-center" data-menu-voice-level aria-label="Microphone level (start screen)"></div>
             <p class="text-center text-sm text-gray-500 dark:text-gray-400">Or say <strong>Start</strong> to begin.</p>
             <button type="button" data-start-btn class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:outline-none transition-colors" aria-label="Start game">Start</button>
           </div>

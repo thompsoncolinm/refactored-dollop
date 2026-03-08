@@ -45,6 +45,7 @@ export function init(): void {
   let debugPanel: DebugPanel | null = null;
   let voiceLevelIndicator: VoiceLevelIndicator | null = null;
   let menuVoice: VoiceController | null = null;
+  let menuVoiceLevelIndicator: VoiceLevelIndicator | null = null;
   let lastTranscriptRaw = '';
   let lastTranscriptResolved: string | null = null;
   let orientationPaused = false;
@@ -122,11 +123,21 @@ export function init(): void {
       menuVoice.stop();
       menuVoice = null;
     }
+    if (menuVoiceLevelIndicator) {
+      menuVoiceLevelIndicator.dispose();
+      menuVoiceLevelIndicator = null;
+    }
   }
 
   function startMenuVoiceListener(): void {
     if (getMenuDifficulty() < 1 || getMenuDifficulty() > 6) return;
     stopMenuVoice();
+    const menuLevelEl = root.querySelector('[data-menu-voice-level]') as HTMLElement;
+    if (menuLevelEl) {
+      menuVoiceLevelIndicator = new VoiceLevelIndicator();
+      menuVoiceLevelIndicator.mount(menuLevelEl);
+      void menuVoiceLevelIndicator.start();
+    }
     menuVoice = new VoiceController();
     if (!menuVoice.isSupported()) return;
     menuVoice.startListening(
@@ -150,6 +161,10 @@ export function init(): void {
       startMenuVoiceListener();
     }
   });
+
+  if (typeof window !== 'undefined' && window.location.pathname === '/game' && !root.dataset.initialLevel) {
+    window.location.replace('/');
+  }
 
   const initialDifficulty = root.dataset.initialDifficulty;
   const initialLevel = root.dataset.initialLevel;
