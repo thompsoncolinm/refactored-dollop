@@ -20,8 +20,8 @@ const levelLabel = initialLevel ? LEVEL_LABELS[initialLevel] ?? `Level ${initial
     <div id="game-root" class="container mx-auto px-4 py-8 max-w-lg" data-initial-level={initialLevel}>
       <div data-audio-overlay class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 hidden" role="alert">
         <div class="bg-gray-800 rounded-lg p-6 text-center max-w-sm">
-          <p class="mb-4">Tap to enable sound</p>
-          <button type="button" data-audio-unlock class="px-4 py-2 bg-blue-600 text-white rounded-lg focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:outline-none" aria-label="Enable sound">Enable sound</button>
+          <p class="mb-4">Tap to enable sound and voice. Then say &quot;Start&quot; to begin.</p>
+          <button type="button" data-audio-unlock class="px-4 py-2 bg-blue-600 text-white rounded-lg focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:outline-none" aria-label="Enable sound and voice">Enable sound</button>
         </div>
       </div>
 
@@ -30,39 +30,15 @@ const levelLabel = initialLevel ? LEVEL_LABELS[initialLevel] ?? `Level ${initial
         <p class="text-center text-sm text-gray-600 dark:text-gray-400">
           {initialLevel
             ? 'Say your guess out loud; the game listens. Playing with someone? They can type your guess for you.'
-            : 'Select difficulty, then start. Say your guess out loud; the game listens. Playing with someone? They can type your guess for you.'}
+            : 'Choose a level from the navigation above.'}
         </p>
         <p class="text-center text-xs text-amber-600 dark:text-amber-400" role="note">For voice to work, use <strong>Google Chrome</strong>. Other browsers (e.g. Brave) may block speech recognition.</p>
-        {!initialLevel ? (
-          <fieldset class="space-y-2" data-difficulty-fieldset>
-            <legend class="sr-only">Difficulty level</legend>
-            <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
-              <input type="radio" name="difficulty" value="1" checked class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 1: Solid colours" />
-              <span>1 – Solid colours</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
-              <input type="radio" name="difficulty" value="2" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 2: 2D shapes" />
-              <span>2 – 2D shapes</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
-              <input type="radio" name="difficulty" value="3" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 3: 3D shapes" />
-              <span>3 – 3D shapes</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
-              <input type="radio" name="difficulty" value="4" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 4: 2D and 3D mix" />
-              <span>4 – 2D + 3D mix</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
-              <input type="radio" name="difficulty" value="5" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 5: Coloured 2D" />
-              <span>5 – Coloured 2D</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 rounded">
-              <input type="radio" name="difficulty" value="6" class="focus:ring-2 focus:ring-offset-2" aria-label="Difficulty 6: Coloured 3D" />
-              <span>6 – Coloured 3D</span>
-            </label>
-          </fieldset>
+        {initialLevel ? (
+          <div class="space-y-4">
+            <p class="text-center text-sm text-gray-500 dark:text-gray-400">Or say <strong>Start</strong> to begin.</p>
+            <button type="button" data-start-btn class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:outline-none transition-colors" aria-label="Start game">Start</button>
+          </div>
         ) : null}
-        <button type="button" data-start-btn class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:outline-none transition-colors" aria-label="Start game">Start</button>
       </section>
 
       <section data-game-resume class="hidden space-y-4" aria-label="Resume game">

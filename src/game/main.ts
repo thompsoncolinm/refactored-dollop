@@ -44,6 +44,7 @@ export function init(): void {
   let fpsMonitor: FPSMonitor | null = null;
   let debugPanel: DebugPanel | null = null;
   let voiceLevelIndicator: VoiceLevelIndicator | null = null;
+  let menuVoice: VoiceController | null = null;
   let lastTranscriptRaw = '';
   let lastTranscriptResolved: string | null = null;
   let orientationPaused = false;
@@ -97,6 +98,47 @@ export function init(): void {
     }
   }
 
+  function getMenuDifficulty(): number {
+    const fromUrl = root.dataset.initialLevel ? Number(root.dataset.initialLevel) : 0;
+    if (fromUrl >= 1 && fromUrl <= 6) return fromUrl;
+    if (root.dataset.initialDifficulty !== undefined) return 1;
+    return 0;
+  }
+
+  function isStartCommand(transcript: string): boolean {
+    const t = transcript.trim().toLowerCase();
+    return t === 'start' || t === 'play' || t === 'go' || t.indexOf('start') !== -1 || t.indexOf('play') !== -1;
+  }
+
+  function doStart(): void {
+    const difficulty = getMenuDifficulty();
+    if (difficulty < 1 || difficulty > 6 || difficulty !== Math.floor(difficulty)) return;
+    stopMenuVoice();
+    startNewGame(difficulty as DifficultyLevel);
+  }
+
+  function stopMenuVoice(): void {
+    if (menuVoice) {
+      menuVoice.stop();
+      menuVoice = null;
+    }
+  }
+
+  function startMenuVoiceListener(): void {
+    if (getMenuDifficulty() < 1 || getMenuDifficulty() > 6) return;
+    stopMenuVoice();
+    menuVoice = new VoiceController();
+    if (!menuVoice.isSupported()) return;
+    menuVoice.startListening(
+      (transcript) => {
+        if (isStartCommand(transcript)) doStart();
+      },
+      undefined,
+      undefined,
+      { timeoutMs: 60000 }
+    );
+  }
+
   audio = new AudioController();
   audio.setOnBlocked(() => {
     if (audioOverlay) audioOverlay.classList.remove('hidden');
@@ -104,6 +146,9 @@ export function init(): void {
   (root.querySelector('[data-audio-unlock]') as HTMLElement)?.addEventListener('click', async () => {
     await audio?.unlock();
     if (audioOverlay) audioOverlay.classList.add('hidden');
+    if (menuEl && !menuEl.classList.contains('hidden') && getMenuDifficulty() >= 1) {
+      startMenuVoiceListener();
+    }
   });
 
   const initialDifficulty = root.dataset.initialDifficulty;
@@ -142,6 +187,7 @@ export function init(): void {
   });
 
   function startGameFromResume(state: GameSessionState): void {
+    stopMenuVoice();
     voice = new VoiceController();
     engine = new GameEngine({
       onPhaseChange: (phase) => {
@@ -246,14 +292,11 @@ export function init(): void {
   (root.querySelector('[data-start-btn]') as HTMLButtonElement)?.addEventListener('click', async () => {
     await audio?.unlock();
     if (audioOverlay) audioOverlay.classList.add('hidden');
-    const selected = root.querySelector('input[name="difficulty"]:checked') as HTMLInputElement | null;
-    const fromUrl = root.dataset.initialLevel ? Number(root.dataset.initialLevel) : 0;
-    const difficulty = (selected ? Number(selected.value) : (fromUrl >= 1 && fromUrl <= 6 ? fromUrl : 1)) as DifficultyLevel;
-    if (!Number.isInteger(difficulty) || difficulty < 1 || difficulty > 6) return;
-    startNewGame(difficulty);
+    doStart();
   });
 
   function startNewGame(difficulty: DifficultyLevel): void {
+    stopMenuVoice();
     voice = new VoiceController();
     engine = new GameEngine({
       onPhaseChange: (phase) => {
@@ -376,6 +419,7 @@ export function init(): void {
     orientation?.dispose();
     fpsMonitor?.stop();
     debugPanel?.dispose();
+    stopMenuVoice();
     engine = null;
     card = null;
     voice = null;
@@ -383,6 +427,7 @@ export function init(): void {
     orientation = null;
     fpsMonitor = null;
     debugPanel = null;
+    if (audio?.isUnlocked() && getMenuDifficulty() >= 1) startMenuVoiceListener();
   });
 }
 

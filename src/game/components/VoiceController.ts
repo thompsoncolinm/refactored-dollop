@@ -8,6 +8,20 @@ import { VOICE_TIMEOUT_MS, DEBUG_VOICE } from '../constants';
 
 /** Delay (ms) after last transcript before committing when isFinal is not received (e.g. some browsers). */
 const COMMIT_DELAY_MS = 450;
+/** Longer commit delay on mobile (Android) where isFinal can be delayed. */
+const COMMIT_DELAY_MOBILE_MS = 650;
+
+function isMobileLike(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
+function getSpeechLang(): string {
+  if (typeof navigator === 'undefined') return 'en-US';
+  const lang = navigator.language || (navigator.languages && navigator.languages[0]) || 'en-US';
+  if (/^en(-[A-Za-z]{2})?$/i.test(lang)) return lang;
+  return 'en-US';
+}
 
 function log(...args: unknown[]): void {
   if (DEBUG_VOICE) {
@@ -32,6 +46,8 @@ export class VoiceController {
   private _rawResultDumped = false;
   /** Last speech error (e.g. "network") for debug panel and UI. */
   private _lastError: { error: string; message?: string } | null = null;
+  private _commitDelayMs = COMMIT_DELAY_MS;
+  private _timeoutMs = VOICE_TIMEOUT_MS;
 
   constructor() {
     const Ctor = (typeof window !== 'undefined' && (window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition) ||
@@ -42,7 +58,7 @@ export class VoiceController {
       this.recognition = rec;
       rec.continuous = true;
       rec.interimResults = true;
-      rec.lang = 'en-US';
+      rec.lang = getSpeechLang();
       rec.maxAlternatives = 3;
       rec.onresult = (e: SpeechRecognitionEvent) => {
         const results = e.results;
@@ -90,7 +106,7 @@ export class VoiceController {
               this.commitTranscript(transcript);
               break;
             }
-            this.scheduleCommit();
+            this.scheduleCommit(this._commitDelayMs);
           }
         }
       };
@@ -152,14 +168,15 @@ export class VoiceController {
     }
   }
 
-  private scheduleCommit(): void {
+  private scheduleCommit(delayMs?: number): void {
     this.clearCommitTimer();
+    const delay = delayMs ?? this._commitDelayMs;
     this.commitTimerId = setTimeout(() => {
       this.commitTimerId = null;
       if (this.resultAlreadySent) return;
       const t = this.lastTranscript.trim();
       if (t) this.commitTranscript(t);
-    }, COMMIT_DELAY_MS);
+    }, delay);
   }
 
   private commitTranscript(transcript: string): void {
@@ -173,16 +190,18 @@ export class VoiceController {
   }
 
   /**
-   * Start listening. Auto-advances when speech is recognized (final result or after COMMIT_DELAY_MS).
-   * Also calls onResult on 6s timeout ("no response"). On speech API error, calls onError.
-   * Button/typed input can still submit via getLastTranscript() or explicit advance in main.
+   * Start listening. Auto-advances when speech is recognized (final result or after commit delay).
+   * Also calls onResult after timeoutMs ("no response"). Options: timeoutMs, commitDelayMs (mobile uses longer delay).
    */
   startListening(
     onResult: VoiceResultCallback,
     onTranscriptUpdate?: TranscriptUpdateCallback,
-    onError?: VoiceErrorCallback
+    onError?: VoiceErrorCallback,
+    options?: { timeoutMs?: number; commitDelayMs?: number }
   ): void {
-    log('startListening()');
+    this._timeoutMs = options?.timeoutMs ?? VOICE_TIMEOUT_MS;
+    this._commitDelayMs = options?.commitDelayMs ?? (isMobileLike() ? COMMIT_DELAY_MOBILE_MS : COMMIT_DELAY_MS);
+    log('startListening()', 'lang=', this.recognition ? (this.recognition as { lang: string }).lang : 'n/a');
     this.onResult = onResult;
     this.onTranscriptUpdate = onTranscriptUpdate ?? null;
     this.onError = onError ?? null;
@@ -191,20 +210,21 @@ export class VoiceController {
     this.lastTranscript = '';
     this._rawResultDumped = false;
     this.clearTimeout();
+    this.clearCommitTimer();
     if (!this.recognition) {
       log('startListening: no recognition, calling onResult("no response")');
       onResult('no response');
       return;
     }
     this.timeoutId = setTimeout(() => {
-      log('timeout (6s) - no response');
+      log('timeout (' + this._timeoutMs + 'ms) - no response');
       this.timeoutId = null;
       this.resultAlreadySent = true;
       this.stop();
       if (this.onResult) {
         this.onResult('no response');
       }
-    }, VOICE_TIMEOUT_MS);
+    }, this._timeoutMs);
     try {
       setTimeout(() => {
         if (this.resultAlreadySent) return;
