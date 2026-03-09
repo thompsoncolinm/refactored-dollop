@@ -68,6 +68,11 @@ export function init(): void {
     if (debugDescEl) debugDescEl.textContent = text;
   }
 
+  function setAnnouncer(text: string): void {
+    const el = document.getElementById('game-announcer');
+    if (el) el.textContent = text;
+  }
+
   function setISaidItButtonLabel(transcript: string): void {
     if (DEBUG_VOICE) console.log('[Voice] setISaidItButtonLabel(', JSON.stringify(transcript), ')');
     const btn = root.querySelector('[data-i-said-it-btn]') as HTMLButtonElement | null;
@@ -132,35 +137,57 @@ export function init(): void {
   function startMenuVoiceListener(): void {
     if (getMenuDifficulty() < 1 || getMenuDifficulty() > 6) return;
     stopMenuVoice();
-    const menuLevelEl = root.querySelector('[data-menu-voice-level]') as HTMLElement;
+    const menuLevelEl = root.querySelector('[data-menu-voice-level]') as HTMLElement | null;
     if (menuLevelEl) {
       menuVoiceLevelIndicator = new VoiceLevelIndicator();
       menuVoiceLevelIndicator.mount(menuLevelEl);
       void menuVoiceLevelIndicator.start();
     }
     menuVoice = new VoiceController();
-    if (!menuVoice.isSupported()) return;
-    menuVoice.startListening(
-      (transcript) => {
-        if (isStartCommand(transcript)) doStart();
-      },
-      undefined,
-      undefined,
-      { timeoutMs: 60000 }
-    );
+    if (menuVoice.isSupported()) {
+      menuVoice.startListening(
+        (transcript) => {
+          if (isStartCommand(transcript)) doStart();
+        },
+        undefined,
+        undefined,
+        { timeoutMs: 60000 }
+      );
+    }
+  }
+
+  function enableVoiceAndStartListening(): void {
+    if (getMenuDifficulty() >= 1) {
+      startMenuVoiceListener();
+    }
+  }
+
+  async function onFirstGesture(): Promise<void> {
+    await audio?.unlock();
+    if (audioOverlay) audioOverlay.classList.add('hidden');
+    enableVoiceAndStartListening();
   }
 
   audio = new AudioController();
   audio.setOnBlocked(() => {
     if (audioOverlay) audioOverlay.classList.remove('hidden');
   });
-  (root.querySelector('[data-audio-unlock]') as HTMLElement)?.addEventListener('click', async () => {
-    await audio?.unlock();
-    if (audioOverlay) audioOverlay.classList.add('hidden');
-    if (menuEl && !menuEl.classList.contains('hidden') && getMenuDifficulty() >= 1) {
-      startMenuVoiceListener();
-    }
+
+  (root.querySelector('[data-audio-unlock]') as HTMLElement)?.addEventListener('click', (e) => {
+    e.preventDefault();
+    void onFirstGesture();
   });
+
+  const onceOpts = { capture: true, once: true };
+  root.addEventListener('click', () => void onFirstGesture(), onceOpts);
+  root.addEventListener('keydown', () => void onFirstGesture(), onceOpts);
+
+  if (audioOverlay) {
+    audioOverlay.addEventListener('click', (e) => {
+      e.preventDefault();
+      void onFirstGesture();
+    });
+  }
 
   const initialDifficulty = root.dataset.initialDifficulty;
   const initialLevel = root.dataset.initialLevel;
@@ -204,10 +231,11 @@ export function init(): void {
       onPhaseChange: (phase) => {
         if (phase === 'results') showScreen('results');
       },
-      onCardChange: (c: CardData, _index: number, _total: number) => {
+      onCardChange: (c: CardData, index: number, total: number) => {
         if (!card || !playingEl) return;
         card.setContent(c);
         setDebugDesc(`${c.kind} ${c.color ?? ''} ${c.shape2d ?? ''} ${c.shape3d ?? ''}`);
+        setAnnouncer(`Card ${index + 1} of ${total}. Say your guess.`);
         setISaidItButtonLabel('');
         clearVoiceError();
         const typedEl = root.querySelector('[data-voice-typed-input]') as HTMLInputElement | null;
@@ -221,6 +249,7 @@ export function init(): void {
       onResults: (results) => {
         audio?.playRoundComplete();
         Haptics.roundEnd();
+        setAnnouncer('Round complete. Results ready.');
         const list = root.querySelector('[data-results-list]');
         if (list) {
           list.innerHTML = results
@@ -313,10 +342,11 @@ export function init(): void {
       onPhaseChange: (phase) => {
         if (phase === 'results') showScreen('results');
       },
-      onCardChange: (c: CardData, _index: number, _total: number) => {
+      onCardChange: (c: CardData, index: number, total: number) => {
         if (!card || !playingEl) return;
         card.setContent(c);
         setDebugDesc(`${c.kind} ${c.color ?? ''} ${c.shape2d ?? ''} ${c.shape3d ?? ''}`);
+        setAnnouncer(`Card ${index + 1} of ${total}. Say your guess.`);
         setISaidItButtonLabel('');
         clearVoiceError();
         const typedEl = root.querySelector('[data-voice-typed-input]') as HTMLInputElement | null;
@@ -330,6 +360,7 @@ export function init(): void {
       onResults: (results) => {
         audio?.playRoundComplete();
         Haptics.roundEnd();
+        setAnnouncer('Round complete. Results ready.');
         const list = root.querySelector('[data-results-list]');
         if (list) {
           list.innerHTML = results
