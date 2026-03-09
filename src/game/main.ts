@@ -162,10 +162,6 @@ export function init(): void {
     }
   });
 
-  if (typeof window !== 'undefined' && window.location.pathname === '/game' && !root.dataset.initialLevel) {
-    window.location.replace('/');
-  }
-
   const initialDifficulty = root.dataset.initialDifficulty;
   const initialLevel = root.dataset.initialLevel;
   const isLevelLocked = initialDifficulty !== undefined && initialDifficulty !== '';
